@@ -1,0 +1,38 @@
+---
+  - name: Create temporary users on localhost
+    hosts: ansible_clients
+    become: true
+
+    tasks:
+      - name: Create users with the retrieved names
+        ansible.builtin.user:
+          name: "{{ username }}"
+          password: "{{ 'password' | password_hash('sha512') }}"
+        when: inventory_hostname == servers
+
+      - name: Create sudoers configuration file
+        copy:
+          content: '{{ username }} ALL=(ALL) NOPASSWD: ALL'  # Replace your_username with the actual username
+          dest: '/etc/sudoers.d/{{ username }}_sudoers'  # Replace your_username with the actual username
+          mode: '0440'
+        when: inventory_hostname == servers
+
+      - name: set ownership of user's files and directories
+        command: chown -R {{ username }}:{{ username }} /var/spool/mail/{{ username }}
+        when: inventory_hostname == servers
+
+      - name: set ownership of user's files home directiores
+        command: chown -R {{ username }}:{{ username }} /home/{{ username }}
+        when: inventory_hostname == servers
+
+      - name: Verify sudoers configuration
+        command: visudo -cf '/etc/sudoers.d/{{ username }}_sudoers'
+        ignore_errors: yes
+        register: visudo_output
+        when: inventory_hostname == servers
+
+      - name: Remove sudoers configuration file if there are syntax errors
+        file:
+          path: '/etc/sudoers.d/{{ username }}_sudoers'
+          state: absent
+        when: inventory_hostname ==servers and visudo_output.rc != 0
