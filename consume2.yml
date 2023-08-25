@@ -1,0 +1,42 @@
+---
+  - name: Create temporary users on localhost
+    hosts: ansible_clients
+    # - ansible_clients
+    #  - localhost
+    become: true
+
+    tasks:
+      - name: Get a messages off a queue and set a fact for re-use
+        set_fact:
+          messages: "{{ lookup('community.rabbitmq.rabbitmq', url='amqp://test:test@10.16.73.18:5672/%2F', queue='message_q', count=1) }}"
+        run_once: true
+          # when: inventory_hostname == "localhost"
+
+
+      - name: save message to split them into list
+        set_fact:
+           meg_list: "{{ messages[0].msg | split(',') }}"
+        run_once: true
+
+                # var: messages[0].msg | type_debug
+                # - name: print xplitted list
+                # debug:
+                # var: meg_list[1]
+                # var: "server1" | type_debug
+
+      - name: saving server choice
+        set_fact:
+          username: "{{ meg_list[0] }}"
+          server_choice: "{{ meg_list[1] }}"
+        run_once: true
+
+
+      - name: viewing content of server
+        debug:
+          var: server_choice
+        run_once: true
+
+      - name: Add the user with a specific uid and a primary group of 'admin'
+        ansible.builtin.user:
+          name: "{{ username }}"
+        when: inventory_hostname == server_choice
