@@ -1,0 +1,27 @@
+- name: Remove multiple users
+  hosts: ansible_clients
+  become: true
+
+  vars:
+    users_to_remove:
+      - rishi
+      - alan
+      - roland
+      - sarah
+      - pizza
+      - tokyo
+      # Add more usernames to this list
+
+  tasks:
+    - name: Remove users
+      ansible.builtin.user:
+        name: "{{ item }}"
+        state: absent
+        remove: yes
+      loop: "{{ users_to_remove }}"
+
+    - name: Remove sudoers configuration file if there are syntax errors
+      file:
+        path: '/etc/sudoers.d/{{ item }}_sudoers'
+        state: absent
+      loop: "{{ users_to_remove }}"
