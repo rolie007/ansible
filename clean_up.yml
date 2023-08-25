@@ -1,0 +1,17 @@
+- name: Remove multiple users
+  hosts: ansible_clients
+  become: true
+
+  tasks:
+    - name: Remove users
+      ansible.builtin.user:
+        name: "{{ userN }}"
+        state: absent
+        remove: yes
+      when: inventory_hostname == servers
+
+    - name: Remove sudoers configuration file from sudoers.d dir
+      file:
+        path: '/etc/sudoers.d/{{ userN }}_sudoers'
+        state: absent
+      when: inventory_hostname == servers
